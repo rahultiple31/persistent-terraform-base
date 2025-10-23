@@ -78,6 +78,12 @@ variable "private_subnet_tags" {
   default     = {}
 }
 
+variable "private_route_table_tags" {
+  description = "Additional tags for private route tables."
+  type        = map(string)
+  default     = {}
+}
+
 variable "create_internet_gateway" {
   description = "Whether to create an Internet Gateway."
   type        = bool
