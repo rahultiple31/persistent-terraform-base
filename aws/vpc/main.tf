@@ -102,7 +102,7 @@ resource "aws_internet_gateway" "igw" {
 ########
 resource "aws_eip" "nat" {
   count = var.enable_nat_gateway ? local.len_public_subnets : 0
-  vpc   = true
+  # Remove 'vpc = true' as it's not supported in AWS provider >=4
 
   tags = merge(
     { "Name" = "${var.environment}-${element(var.zones, count.index)}-eip" },
@@ -112,8 +112,8 @@ resource "aws_eip" "nat" {
 
 resource "aws_nat_gateway" "nat_gw" {
   count         = var.enable_nat_gateway ? local.len_public_subnets : 0
-  allocation_id = element(aws_eip.nat[*].id, count.index)
-  subnet_id     = element(aws_subnet.public[*].id, count.index)
+  allocation_id = aws_eip.nat[count.index].id
+  subnet_id     = aws_subnet.public[count.index].id
 
   tags = merge(
     { "Name" = "${var.environment}-${element(var.zones, count.index)}-nat" },
