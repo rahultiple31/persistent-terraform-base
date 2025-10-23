@@ -69,7 +69,7 @@ resource "aws_internet_gateway" "igw" {
   tags = merge({ "Name" = "${var.name}-igw" }, var.tags)
 }
 
-# NAT Gateway
+# NAT Gateways
 resource "aws_eip" "nat" {
   count = var.enable_nat_gateway ? local.len_public_subnets : 0
 
@@ -106,4 +106,24 @@ resource "aws_route_table_association" "public_assoc" {
   count          = local.len_public_subnets
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public[0].id
+}
+
+# Private Route Tables (one per private subnet)
+resource "aws_route_table" "private" {
+  count  = var.enable_nat_gateway && local.len_private_subnets > 0 ? local.len_private_subnets : 0
+  vpc_id = aws_vpc.main[0].id
+  tags   = merge({ Name = "${var.environment}-private-rt-${count.index + 1}" }, var.private_route_table_tags, var.tags)
+}
+
+resource "aws_route" "private_nat" {
+  count                   = var.enable_nat_gateway && local.len_private_subnets > 0 ? local.len_private_subnets : 0
+  route_table_id          = aws_route_table.private[count.index].id
+  destination_cidr_block  = "0.0.0.0/0"
+  nat_gateway_id          = aws_nat_gateway.nat_gw[count.index].id
+}
+
+resource "aws_route_table_association" "private_assoc" {
+  count          = local.len_private_subnets
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
 }
