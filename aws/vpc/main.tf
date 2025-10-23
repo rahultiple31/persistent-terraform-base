@@ -122,3 +122,20 @@ resource "aws_nat_gateway" "nat_gw" {
 
   depends_on = [aws_internet_gateway.igw]
 }
+
+resource "aws_route_table" "public" {
+  count  = local.len_public_subnets > 0 ? 1 : 0
+  vpc_id = aws_vpc.main[0].id
+  tags   = merge({ Name = "${var.environment}-public-rt" }, var.tags)
+}
+resource "aws_route" "public_internet" {
+  count                   = var.create_internet_gateway && local.len_public_subnets > 0 ? 1 : 0
+  route_table_id          = aws_route_table.public[0].id
+  destination_cidr_block  = "0.0.0.0/0"
+  gateway_id              = aws_internet_gateway.igw[0].id
+  depends_on = [aws_internet_gateway.igw]
+}
+resource "aws_route_table_association" "public_assoc" {
+  count          = local.len_public_subnets
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public[0].id
