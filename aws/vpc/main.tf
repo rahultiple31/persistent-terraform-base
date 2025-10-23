@@ -18,15 +18,15 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = var.enable_dns_hostnames
 
   tags = merge(
-    { Name = var.name },
+    { "Name" = var.name },
     var.vpc_tags,
     var.tags
   )
 }
 
-##########################
+########
 # Default Security Group #
-##########################
+########
 resource "aws_default_security_group" "default" {
   vpc_id = aws_vpc.main[0].id
 
@@ -45,14 +45,14 @@ resource "aws_default_security_group" "default" {
   }
 
   tags = merge(
-    { Name = "default-${var.name}" },
+    { "Name" = "default-${var.name}" },
     var.tags
   )
 }
 
-##################
-# Public subnets #
-##################
+########
+# Public Subnets #
+########
 resource "aws_subnet" "public" {
   count                   = local.len_public_subnets
   vpc_id                  = aws_vpc.main[0].id
@@ -61,15 +61,15 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = merge(
-    { Name = "${var.environment}-${element(var.zones, count.index)}-public" },
+    { "Name" = "${var.environment}-${element(var.zones, count.index)}-public" },
     var.public_subnet_tags,
     var.tags
   )
 }
 
-###################
-# Private subnets #
-###################
+########
+# Private Subnets #
+########
 resource "aws_subnet" "private" {
   count                   = local.len_private_subnets
   vpc_id                  = aws_vpc.main[0].id
@@ -78,45 +78,45 @@ resource "aws_subnet" "private" {
   map_public_ip_on_launch = var.associate_public_ip
 
   tags = merge(
-    { Name = "${var.environment}-${element(var.zones, count.index)}-private" },
+    { "Name" = "${var.environment}-${element(var.zones, count.index)}-private" },
     var.private_subnet_tags,
     var.tags
   )
 }
 
-####################
+########
 # Internet Gateway #
-####################
+########
 resource "aws_internet_gateway" "igw" {
   count  = var.create_internet_gateway ? 1 : 0
   vpc_id = aws_vpc.main[0].id
 
   tags = merge(
-    { Name = "${var.name}-igw" },
+    { "Name" = "${var.name}-igw" },
     var.tags
   )
 }
 
-##############
+########
 # NAT Gateway #
-##############
+########
 resource "aws_eip" "nat" {
   count = var.enable_nat_gateway ? local.len_public_subnets : 0
-  domain = "vpc"
+  vpc   = true
 
   tags = merge(
-    { Name = "${var.environment}-${element(var.zones, count.index)}-eip" },
+    { "Name" = "${var.environment}-${element(var.zones, count.index)}-eip" },
     var.tags
   )
 }
 
 resource "aws_nat_gateway" "nat_gw" {
   count         = var.enable_nat_gateway ? local.len_public_subnets : 0
-  allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public[count.index].id
+  allocation_id = element(aws_eip.nat[*].id, count.index)
+  subnet_id     = element(aws_subnet.public[*].id, count.index)
 
   tags = merge(
-    { Name = "${var.environment}-${element(var.zones, count.index)}-nat" },
+    { "Name" = "${var.environment}-${element(var.zones, count.index)}-nat" },
     var.tags
   )
 
